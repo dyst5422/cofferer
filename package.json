@@ -1,0 +1,53 @@
+{
+  "name": "cofferer",
+  "version": "1.0.0",
+  "description": "A JS/TS benchmark runner with a familiar spec-like api",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx jest",
+    "build-index": "esbuild ./src/runner.ts --format=esm --platform=node --outfile=dist/runner.mjs",
+    "build-worker": "esbuild ./src/worker.ts src/intendant/* --format=cjs --platform=node --outdir=dist",
+    "watch": "npm run build-index -- --watch",
+    "watch-worker": "npm run build-worker -- --watch",
+    "go": "node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dyst5422/cofferer.git"
+  },
+  "keywords": [
+    "benchmark",
+    "runner"
+  ],
+  "author": "Dylan Stewart",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dyst5422/cofferer/issues"
+  },
+  "homepage": "https://github.com/dyst5422/cofferer#readme",
+  "devDependencies": {
+    "@types/co": "^4.6.2",
+    "@types/dedent": "^0.7.0",
+    "@types/stack-utils": "^2.0.1",
+    "@typescript-eslint/eslint-plugin": "^4.28.5",
+    "@typescript-eslint/parser": "^4.28.5",
+    "esbuild": "^0.12.16",
+    "eslint": "^7.31.0",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "co": "^4.6.0",
+    "cosmiconfig": "^7.0.0",
+    "dedent": "^0.7.0",
+    "immer": "^9.0.5",
+    "is-generator-fn": "^2.1.0",
+    "is-generator-function": "^1.0.9",
+    "jest-each": "^27.0.6",
+    "jest-haste-map": "^27.0.6",
+    "jest-util": "^27.0.6",
+    "jest-worker": "^27.0.6",
+    "pretty-format": "^27.0.6",
+    "ts-invariant": "^0.9.0"
+  }
+}
