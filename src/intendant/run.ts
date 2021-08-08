@@ -1,9 +1,17 @@
-import type * as types from './types';
+import type * as Intendant from './types';
+import type * as Cofferer from '../types';
 import {dispatch, getState} from './state';
-import {callAsyncIntendantFn, getAllHooksForDescribe, getBenchID, getEachHooksForBench, makeRunResult} from './utils';
+import {
+  callAsyncIntendantBenchFn,
+  callAsyncIntendantFn,
+  getAllHooksForDescribe,
+  getBenchID,
+  getEachHooksForBench,
+  makeRunResult
+} from './utils';
 import invariant from "ts-invariant";
 
-export async function run(): Promise<types.RunResult> {
+export async function run(): Promise<Cofferer.RunResult> {
   const {rootDescribeBlock} = getState();
   await dispatch({name: 'start_run'});
   await _runBenchesForDescribeBlock(rootDescribeBlock);
@@ -15,7 +23,7 @@ export async function run(): Promise<types.RunResult> {
 }
 
 const _runBenchesForDescribeBlock = async (
-  describeBlock: types.DescribeBlock,
+  describeBlock: Intendant.DescribeBlock,
 ) => {
   await dispatch({describeBlock, name: 'start_run_describe'});
   const {beforeAll, afterAll} = getAllHooksForDescribe(describeBlock);
@@ -51,10 +59,10 @@ const _runBenchesForDescribeBlock = async (
 };
 
 async function _runBench(
-  bench: types.BenchEntry,
+  bench: Intendant.BenchEntry,
   parentSkipped: boolean,
 ): Promise<void> {
-  await dispatch({name: 'bench_start', test: bench});
+  await dispatch({name: 'bench_start', bench: bench});
   const benchContext = Object.create(null);
   const {hasFocusedBenches, benchNamePattern} = getState();
 
@@ -65,12 +73,12 @@ async function _runBench(
     (benchNamePattern && !benchNamePattern.test(getBenchID(bench)));
 
   if (isSkipped) {
-    await dispatch({name: 'bench_skip', test: bench});
+    await dispatch({name: 'bench_skip', bench: bench});
     return;
   }
 
   if (bench.mode === 'todo') {
-    await dispatch({name: 'bench_todo', test: bench});
+    await dispatch({name: 'bench_todo', bench: bench});
     return;
   }
 
@@ -82,19 +90,19 @@ async function _runBench(
       // hooks after that.
       break;
     }
-    await _callIntendantHook ({hook, bench: bench, benchContext: testContext});
+    await _callIntendantHook ({hook, bench: bench, benchContext: benchContext});
   }
 
   await _callIntendantBench(bench, benchContext);
 
   for (const hook of afterEach) {
-    await _callIntendantHook({hook, bench: bench, benchContext: testContext});
+    await _callIntendantHook({hook, bench: bench, benchContext: benchContext});
   }
 
-  // `afterAll` hooks should not affect test status (pass or fail), because if
-  // we had a global `afterAll` hook it would block all existing tests until
-  // this hook is executed. So we dispatch `test_done` right away.
-  await dispatch({name: 'bench_done', test: bench});
+  // `afterAll` hooks should not affect bench status (pass or fail), because if
+  // we had a global `afterAll` hook it would block all existing benches until
+  // this hook is executed. So we dispatch `bench_done` right away.
+  await dispatch({name: 'bench_done', bench: bench});
 }
 
 async function _callIntendantHook({
@@ -103,10 +111,10 @@ async function _callIntendantHook({
  describeBlock,
  benchContext,
 }: {
-  hook: types.Hook;
-  describeBlock?: types.DescribeBlock;
-  bench?: types.BenchEntry;
-  benchContext?: types.BenchContext;
+  hook: Intendant.Hook;
+  describeBlock?: Intendant.DescribeBlock;
+  bench?: Intendant.BenchEntry;
+  benchContext?: Intendant.BenchContext;
 }): Promise<void> {
   await dispatch({hook, name: 'hook_start'});
   const timeout = hook.timeout ?? getState().benchTimeout;
@@ -123,20 +131,20 @@ async function _callIntendantHook({
 }
 
 async function _callIntendantBench(
-  bench: types.BenchEntry,
-  benchContext: types.BenchContext,
+  bench: Intendant.BenchEntry,
+  benchContext: Intendant.BenchContext,
 ): Promise<void> {
-  await dispatch({name: 'bench_fn_start', test: bench});
+  await dispatch({name: 'bench_fn_start', bench: bench});
   const timeout = bench.options?.timeout ?? getState().benchTimeout;
-  invariant(bench.fn, `Tests with no 'fn' should have 'mode' set to 'skipped'`);
+  invariant(bench.fn, `Benches with no 'fn' should have 'mode' set to 'skipped'`);
 
   if (bench.errors.length) {
-    return; // We don't run the test if there's already an error in before hooks.
+    return; // We don't run the bench if there's already an error in before hooks.
   }
 
-  await callAsyncIntendantFn(bench, benchContext, {
+  await callAsyncIntendantBenchFn(bench, benchContext, {
     isHook: false,
     timeout,
   });
-  await dispatch({name: 'bench_fn_success', test: bench});
+  await dispatch({name: 'bench_fn_success', bench: bench});
 }

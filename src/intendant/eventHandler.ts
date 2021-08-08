@@ -1,4 +1,4 @@
-import type * as types from './types'
+import type * as Intendant from './types'
 import {
   addErrorToEachBenchUnderDescribe,
   DEFAULT_BENCH_OPTIONS,
@@ -9,8 +9,8 @@ import {
 import invariant from 'ts-invariant';
 import {injectGlobalErrorHandlers, restoreGlobalErrorHandlers} from './globalErrorHandlers';
 
-export function eventHandler(event: types.Events, state: types.State): void {
-  console.log(event);
+export function eventHandler(event: Intendant.Events, state: Intendant.State): void {
+
   switch(event.name) {
     case 'run_start': {
       state.hasStarted = true;
@@ -21,7 +21,21 @@ export function eventHandler(event: types.Events, state: types.State): void {
       break;
     }
     case 'start_describe_definition': {
-      state.currentDescribeBlock = makeDescribe(event.blockName, state.currentDescribeBlock, event.mode);
+      const {blockName, mode} = event;
+      const {currentDescribeBlock, currentlyRunningBench} = state;
+
+      if (currentlyRunningBench) {
+        currentlyRunningBench.errors.push(
+          new Error(
+            `Cannot nest a describe inside a bench. Describe block "${blockName}" cannot run because it is nested within "${currentlyRunningBench.name}".`,
+          ),
+        );
+        break;
+      }
+
+      const describeBlock = makeDescribe(blockName, currentDescribeBlock, mode);
+      currentDescribeBlock.children.push(describeBlock);
+      state.currentDescribeBlock = describeBlock;
       break;
     }
     case 'finish_describe_definition': {

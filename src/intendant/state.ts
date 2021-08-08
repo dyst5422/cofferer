@@ -1,17 +1,16 @@
-import type * as types from './types';
+import type * as Intendant from './types';
 import {eventHandler} from './eventHandler';
 import {DEFAULT_BENCH_OPTIONS, makeDescribe} from "./utils";
 
 // @ts-ignore
-let __globalState: types.State;
+let __globalState: Intendant.State;
 
-const eventHandlers: types.EventHandler[] = [
+const eventHandlers: Intendant.EventHandler[] = [
   eventHandler,
 ];
-export const ROOT_DESCRIBE_BLOCK_NAME = 'ROOT_DESCRIBE_BLOCK';
 
-function createState(): types.State {
-   const ROOT_DESCRIBE_BLOCK = makeDescribe(ROOT_DESCRIBE_BLOCK_NAME);
+function createState(benchFilename: string): Intendant.State {
+   const ROOT_DESCRIBE_BLOCK = makeDescribe(benchFilename);
    return {
      rootDescribeBlock: ROOT_DESCRIBE_BLOCK,
      currentDescribeBlock: ROOT_DESCRIBE_BLOCK,
@@ -23,27 +22,26 @@ function createState(): types.State {
      parentProcess: null,
    };
 }
-export function getState(): types.State {
+export function getState(): Intendant.State {
   return __globalState;
 }
-export function setState(state: types.State): types.State {
+export function setState(state: Intendant.State): Intendant.State {
   __globalState = state;
   return __globalState;
 }
-export function resetState(): void {
-  setState(createState());
+export function resetState(benchFilename: string): void {
+  setState(createState(benchFilename));
 }
-resetState();
-export async function dispatch(event: types.Events): Promise<void> {
+export async function dispatch(event: Intendant.Events): Promise<void> {
   for (const handler of eventHandlers) {
     await handler(event, getState());
   }
 }
-export function dispatchSync(event: types.Events): void {
+export function dispatchSync(event: Intendant.Events): void {
   for (const handler of eventHandlers) {
     handler(event, getState());
   }
 }
-export function addEventHandler(handler: types.EventHandler): void {
+export function addEventHandler(handler: Intendant.EventHandler): void {
   eventHandlers.push(handler);
 }

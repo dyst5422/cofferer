@@ -1,17 +1,18 @@
-import type * as types from './types';
+import type * as Intendant from './types';
+import type * as Cofferer from '../types';
 import {dispatchSync} from './state';
 import {ErrorWithStack, isPromise} from 'jest-util';
 export {run} from './run';
 export{resetState} from './state';
 
-type THook = (fn: types.HookFn, timeout?: number) => void;
-export function describe(blockName: types.BlockName, blockFn: types.BlockFn): void {
+type THook = (fn: Intendant.HookFn, timeout?: number) => void;
+export function describe(blockName: Cofferer.BlockName, blockFn: Intendant.BlockFn): void {
   _dispatchDescribe(blockFn, blockName, describe)
 }
-function describeOnly(blockName: types.BlockName, blockFn: types.BlockFn): void {
+function describeOnly(blockName: Cofferer.BlockName, blockFn: Intendant.BlockFn): void {
   _dispatchDescribe(blockFn, blockName, describeOnly, 'only')
 }
-function describeSkip(blockName: types.BlockName, blockFn: types.BlockFn): void {
+function describeSkip(blockName: Cofferer.BlockName, blockFn: Intendant.BlockFn): void {
   _dispatchDescribe(blockFn, blockName, describeSkip, 'skip')
 }
 
@@ -19,10 +20,10 @@ describe.only = describeOnly;
 describe.skip = describeSkip;
 
 function _dispatchDescribe(
-  blockFn: types.BlockFn,
-  blockName: types.BlockName,
-  describeFn: types.DescribeFn,
-  mode?: types.BlockMode,
+  blockFn: Intendant.BlockFn,
+  blockName: Cofferer.BlockName,
+  describeFn: Intendant.DescribeFn,
+  mode?: Intendant.BlockMode,
 ) {
   const asyncError = new ErrorWithStack(undefined, describeFn);
   if (blockFn === undefined) {
@@ -57,8 +58,8 @@ function _dispatchDescribe(
 }
 
 const _addHook = (
-  fn: types.HookFn,
-  hookType: types.HookType,
+  fn: Intendant.HookFn,
+  hookType: Intendant.HookType,
   hookFn: THook,
   timeout?: number,
 ) => {
@@ -85,31 +86,31 @@ export const afterAll: THook = (fn, timeout) =>
   _addHook(fn, 'afterAll', afterAll, timeout);
 
 export function bench(
-  benchName: types.BenchName,
-  fn: types.BenchFn,
-  options?: Partial<types.BenchOptions> | null,
+  benchName: Cofferer.BenchName,
+  fn: Intendant.BenchFn,
+  options?: Partial<Intendant.BenchOptions> | null,
 ): void {
   _addBench(benchName, undefined, fn, bench, options);
 }
 
 function benchSkip(
-  benchName: types.BenchName,
-  fn?: types.BenchFn,
-  options?: Partial<types.BenchOptions> | null,
+  benchName: Cofferer.BenchName,
+  fn?: Intendant.BenchFn,
+  options?: Partial<Intendant.BenchOptions> | null,
 ): void {
   _addBench(benchName, 'skip', fn, benchSkip, options);
 }
 
 function benchOnly(
-  benchName: types.BenchName,
-  fn?: types.BenchFn,
-  options?: Partial<types.BenchOptions> | null,
+  benchName: Cofferer.BenchName,
+  fn?: Intendant.BenchFn,
+  options?: Partial<Intendant.BenchOptions> | null,
 ): void {
   _addBench(benchName, 'only', fn, benchOnly, options);
 }
 
 function benchTodo(
-  benchName: types.BenchName,
+  benchName: Cofferer.BenchName,
   ...rest: any[]
 ) {
   if (rest.length > 0 || typeof benchName !== 'string') {
@@ -127,15 +128,15 @@ bench.todo = benchTodo;
 
 
 function _addBench(
-  benchName: types.BenchName,
-  mode: types.BenchMode,
-  fn: types.BenchFn | undefined,
+  benchName: Cofferer.BenchName,
+  mode: Intendant.BenchMode,
+  fn: Intendant.BenchFn | undefined,
   benchFn: (
-    benchName: types.BenchName,
-    fn: types.BenchFn,
-    options?: Partial<types.BenchOptions>,
+    benchName: Cofferer.BenchName,
+    fn: Intendant.BenchFn,
+    options?: Partial<Intendant.BenchOptions>,
   ) => void,
-  options?: Partial<types.BenchOptions> | null,
+  options?: Partial<Intendant.BenchOptions> | null,
 ) {
   const asyncError = new ErrorWithStack(undefined, benchFn);
 

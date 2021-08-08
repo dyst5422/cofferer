@@ -1,29 +1,32 @@
-import type * as types from './types';
+import type * as Intendant from './types';
+import type * as Cofferer from '../types';
 import {format as prettyFormat} from 'pretty-format';
 import invariant from 'ts-invariant';
-import {dispatch, dispatchSync, getState} from './state';
+import {getState} from './state';
 import dedent from 'dedent';
 import co from 'co';
 import {ErrorWithStack, formatTime} from 'jest-util';
 import isGeneratorFunction from 'is-generator-fn';
 import v8 from 'v8';
+import path from "path";
 
-export const DEFAULT_BENCH_OPTIONS: types.BenchOptions = {
+export const DEFAULT_BENCH_OPTIONS: Cofferer.BenchOptions = {
   timeout: 60000,
   iterations: 10,
-  profileDuration: true,
   profileMemory: true,
+  snapshotHeap: false,
+  memoryLeakVariance: 0.05,
 }
 
-function takesDoneCallback(fn: types.AsyncFn): fn is types.DoneTakingBenchFn {
+function takesDoneCallback(fn: Intendant.AsyncFn): fn is Intendant.DoneTakingBenchFn {
   return fn.length > 0;
 }
 
 export function makeDescribe(
-  name: types.BlockName,
-  parent?: types.DescribeBlock,
-  mode?: types.BlockMode,
-): types.DescribeBlock {
+  name: Cofferer.BlockName,
+  parent?: Intendant.DescribeBlock,
+  mode?: Intendant.BlockMode,
+): Intendant.DescribeBlock {
   let _mode = mode;
   if (parent && !mode) {
     // If not set explicitly, inherit from the parent describe.
@@ -41,7 +44,7 @@ export function makeDescribe(
 }
 
 export function describeBlockHasBenches(
-  describe: types.DescribeBlock,
+  describe: Intendant.DescribeBlock,
 ): boolean {
   return describe.children.some(
     child => child.type === 'bench' || describeBlockHasBenches(child),
@@ -49,13 +52,13 @@ export function describeBlockHasBenches(
 }
 
 export function makeBench(
-  fn: types.BenchFn,
-  mode: types.BenchMode,
-  name: types.BenchName,
-  parent: types.DescribeBlock,
-  options: Partial<types.BenchOptions> | null,
-  asyncError: types.Exception,
-): types.BenchEntry {
+  fn: Intendant.BenchFn,
+  mode: Intendant.BenchMode,
+  name: Cofferer.BenchName,
+  parent: Intendant.DescribeBlock,
+  options: Partial<Cofferer.BenchOptions> | null,
+  asyncError: Cofferer.Exception,
+): Intendant.BenchEntry {
   return {
     type: 'bench', // eslint-disable-next-line sort-keys
     asyncError,
@@ -74,9 +77,9 @@ export function makeBench(
 }
 
 export function makeRunResult(
-  describeBlock: types.DescribeBlock,
+  describeBlock: Intendant.DescribeBlock,
   unhandledErrors: Error[]
-): types.RunResult {
+): Cofferer.RunResult {
   return {
     benchResults: makeBenchResults(describeBlock),
     unhandledErrors: unhandledErrors.map(_getError).map(getErrorStack),
@@ -84,9 +87,9 @@ export function makeRunResult(
 }
 
 function makeBenchResults(
-  describeBlock: types.DescribeBlock,
-): types.BenchResults {
-  const benchResults: types.BenchResults = [];
+  describeBlock: Intendant.DescribeBlock,
+): Cofferer.BenchResults {
+  const benchResults: Cofferer.BenchResults = [];
 
   for (const child of describeBlock.children) {
     switch (child.type) {
@@ -105,10 +108,10 @@ function makeBenchResults(
 }
 
 export function makeSingleBenchResult(
-  bench: types.BenchEntry,
-): types.BenchResult {
+  bench: Intendant.BenchEntry,
+): Cofferer.BenchResult {
   const benchPath = [];
-  let parent: types.BenchEntry | types.DescribeBlock | undefined = bench;
+  let parent: Intendant.BenchEntry | Intendant.DescribeBlock | undefined = bench;
 
   const {status} = bench;
   invariant(status, 'Status should be present after benches are run.');
@@ -122,11 +125,12 @@ export function makeSingleBenchResult(
     heapUsedSizes: bench.heapUseds,
     status,
     benchPath: Array.from(benchPath),
+    benchOptions: bench.options,
   };
 }
 
 function _getError(
-  errors?: types.Exception | [types.Exception | undefined, types.Exception],
+  errors?: Cofferer.Exception | [Cofferer.Exception | undefined, Cofferer.Exception],
 ): Error {
   let error;
   let asyncError;
@@ -153,12 +157,12 @@ function getErrorStack(error: Error): string {
 }
 
 type DescribeHooks = {
-  beforeAll: types.Hook[];
-  afterAll: types.Hook[];
+  beforeAll: Intendant.Hook[];
+  afterAll: Intendant.Hook[];
 };
 
 export function getAllHooksForDescribe(
-  describe: types.DescribeBlock,
+  describe: Intendant.DescribeBlock,
 ): DescribeHooks {
   const result: DescribeHooks = {
     afterAll: [],
@@ -183,7 +187,7 @@ export function getAllHooksForDescribe(
 
 // Traverse the tree of describe blocks and return true if at least one describe
 // block has an enabled bench.
-function hasEnabledBench(describeBlock: types.DescribeBlock): boolean {
+function hasEnabledBench(describeBlock: Intendant.DescribeBlock): boolean {
   const {hasFocusedBenches, benchNamePattern} = getState();
   return describeBlock.children.some(child =>
     child.type === 'describeBlock'
@@ -198,20 +202,26 @@ function hasEnabledBench(describeBlock: types.DescribeBlock): boolean {
 
 // Return a string that identifies the bench (concat of parent describe block
 // names + bench title)
-export function getBenchID(bench: types.BenchEntry): string {
+export function getBenchID(bench: Intendant.BenchEntry): string {
+  const titles = getBenchIDArray(bench);
+  return titles.join(':');
+}
+
+// Return a string that identifies the bench (concat of parent describe block
+// names + bench title)
+function getBenchIDArray(bench: Intendant.BenchEntry): string[] {
   const titles = [];
-  let parent: types.BenchEntry | types.DescribeBlock | undefined = bench;
+  let parent: Intendant.BenchEntry | Intendant.DescribeBlock | undefined = bench;
   do {
     titles.unshift(parent.name);
   } while ((parent = parent.parent));
-
-  titles.shift(); // remove TOP_DESCRIBE_BLOCK_NAME
-  return titles.join(' ');
+  // titles.shift(); // remove TOP_DESCRIBE_BLOCK_NAME
+  return titles;
 }
 
 export function callAsyncIntendantFn(
-  benchOrHook: types.BenchEntry | types.Hook,
-  benchContext: types.BenchContext | undefined,
+  benchOrHook: Intendant.BenchEntry | Intendant.Hook,
+  benchContext: Intendant.BenchContext | undefined,
   {isHook, timeout}: {isHook: boolean; timeout: number},
 ): Promise<unknown> {
   let timeoutID: NodeJS.Timeout;
@@ -284,7 +294,7 @@ export function callAsyncIntendantFn(
       return;
     }
 
-    let returnedValue: types.BenchReturnValue;
+    let returnedValue: Intendant.BenchReturnValue;
     if (isGeneratorFunction(fn)) {
       returnedValue = co.wrap(fn).call({});
     } else {
@@ -339,14 +349,13 @@ export function callAsyncIntendantFn(
 }
 
 export function callAsyncIntendantBenchFn(
-  benchOrHook: types.BenchEntry | types.Hook,
-  benchContext: types.BenchContext | undefined,
+  benchOrHook: Intendant.BenchEntry,
+  benchContext: Intendant.BenchContext | undefined,
   {isHook, timeout}: {isHook: boolean; timeout: number},
 ): Promise<unknown> {
   let timeoutID: NodeJS.Timeout;
-  let completed = false;
 
-  const {fn, asyncError} = benchOrHook;
+  const {fn} = benchOrHook;
 
   return new Promise<void>((resolve, reject) => {
     timeoutID = setTimeout(
@@ -354,97 +363,22 @@ export function callAsyncIntendantBenchFn(
       timeout,
     );
 
-    // If this fn accepts `done` callback we return a promise that fulfills as
-    // soon as `done` called.
-    if (takesDoneCallback(fn)) {
-      let returnedValue: unknown = undefined;
-
-      const done = (reason?: Error | string): void => {
-        // We need to keep a stack here before the promise tick
-        const errorAtDone = new ErrorWithStack(undefined, done);
-
-        if (!completed && benchOrHook.seenDone) {
-          errorAtDone.message =
-            'Expected done to be called once, but it was called multiple times.';
-
-          if (reason) {
-            errorAtDone.message +=
-              ' Reason: ' + prettyFormat(reason, {maxDepth: 3});
-          }
-          reject(errorAtDone);
-          throw errorAtDone;
-        } else {
-          benchOrHook.seenDone = true;
-        }
-
-        // Use `Promise.resolve` to allow the event loop to go a single tick in case `done` is called synchronously
-        Promise.resolve().then(() => {
-          if (returnedValue !== undefined) {
-            asyncError.message = dedent`
-      Test functions cannot both take a 'done' callback and return something. Either use a 'done' callback, or return a promise.
-      Returned value: ${prettyFormat(returnedValue, {maxDepth: 3})}
-      `;
-            return reject(asyncError);
-          }
-
-          let errorAsErrorObject: Error;
-          if (checkIsError(reason)) {
-            errorAsErrorObject = reason;
-          } else {
-            errorAsErrorObject = errorAtDone;
-            errorAtDone.message = `Failed: ${prettyFormat(reason, {
-              maxDepth: 3,
-            })}`;
-          }
-
-          // Consider always throwing, regardless if `reason` is set or not
-          if (completed && reason) {
-            errorAsErrorObject.message =
-              'Caught error after test environment was torn down\n\n' +
-              errorAsErrorObject.message;
-
-            throw errorAsErrorObject;
-          }
-
-          return reason ? reject(errorAsErrorObject) : resolve();
-        });
-      };
-
-      if (benchOrHook.type === 'bench') {
-        let initialHeapSize: number | null = null;
-        if (benchOrHook.options.profileMemory) {
-          global.gc!();
-          initialHeapSize = v8.getHeapStatistics().used_heap_size;
-        }
-        for (const _iter of range(1, benchOrHook.options.iterations)) {
-          global.gc!();
-          const startTime = performance.now();
-          returnedValue = fn.call(benchContext, done);
-          benchOrHook.durations.push(performance.now() - startTime);
-          if (benchOrHook.options.profileMemory) {
-            if (!Array.isArray(benchOrHook.heapUseds)) {
-              benchOrHook.heapUseds = [];
-            }
-            benchOrHook.heapUseds!.push(v8.getHeapStatistics().used_heap_size - initialHeapSize!);
-          }
-        }
-      } else {
-        returnedValue = fn.call(benchContext, done);
-      }
-
-      return;
-    }
-
-    let returnedValue: types.BenchReturnValue;
+    let returnedValue: Intendant.BenchReturnValue;
     if (isGeneratorFunction(fn)) {
       if (benchOrHook.type === 'bench') {
         let initialHeapSize: number | null = null;
+        if (benchOrHook.options.snapshotHeap) {
+          global.gc!();
+          const idArray = getBenchIDArray(benchOrHook);
+          const dirName = path.dirname(idArray[0] as string);
+          const filename = path.basename(idArray[0] as string)
+          v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`);
+        }
         if (benchOrHook.options.profileMemory) {
           global.gc!();
           initialHeapSize = v8.getHeapStatistics().used_heap_size;
         }
-        for (const _iter of range(1, benchOrHook.options.iterations)) {
-          global.gc!();
+        for (const iter of range(1, benchOrHook.options.iterations)) {
           const startTime = performance.now();
           returnedValue = co.wrap(fn).call({});
           benchOrHook.durations.push(performance.now() - startTime);
@@ -453,6 +387,15 @@ export function callAsyncIntendantBenchFn(
               benchOrHook.heapUseds = [];
             }
             benchOrHook.heapUseds!.push(v8.getHeapStatistics().used_heap_size - initialHeapSize!);
+          }
+          if (benchOrHook.options.snapshotHeap) {
+            const idArray = getBenchIDArray(benchOrHook);
+            const dirName = path.dirname(idArray[0] as string);
+            const filename = path.basename(idArray[0] as string)
+            v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`);
+          }
+          if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
+            global.gc!();
           }
         }
       } else {
@@ -463,12 +406,18 @@ export function callAsyncIntendantBenchFn(
       try {
         if (benchOrHook.type === 'bench') {
           let initialHeapSize: number | null = null;
+          if (benchOrHook.options.snapshotHeap) {
+            global.gc!();
+            const idArray = getBenchIDArray(benchOrHook);
+            const dirName = path.dirname(idArray[0] as string);
+            const filename = path.basename(idArray[0] as string)
+            v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`);
+          }
           if (benchOrHook.options.profileMemory) {
             global.gc!();
             initialHeapSize = v8.getHeapStatistics().used_heap_size;
           }
-          for (const _iter of range(1, benchOrHook.options.iterations)) {
-            global.gc!();
+          for (const iter of range(1, benchOrHook.options.iterations)) {
             const startTime = performance.now();
             returnedValue = (fn as any).call(benchContext);
             benchOrHook.durations.push(performance.now() - startTime);
@@ -477,6 +426,15 @@ export function callAsyncIntendantBenchFn(
                 benchOrHook.heapUseds = [];
               }
               benchOrHook.heapUseds!.push(v8.getHeapStatistics().used_heap_size - initialHeapSize!);
+            }
+            if (benchOrHook.options.snapshotHeap) {
+              const idArray = getBenchIDArray(benchOrHook);
+              const dirName = path.dirname(idArray[0] as string);
+              const filename = path.basename(idArray[0] as string)
+              v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`);
+            }
+            if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
+              global.gc!();
             }
           }
         } else {
@@ -517,14 +475,12 @@ export function callAsyncIntendantBenchFn(
     resolve();
   })
     .then(() => {
-      completed = true;
       // If timeout is not cleared/unrefed the node process won't exit until
       // it's resolved.
       timeoutID.unref?.();
       clearTimeout(timeoutID);
     })
     .catch(error => {
-      completed = true;
       timeoutID.unref?.();
       clearTimeout(timeoutID);
       throw error;
@@ -532,13 +488,13 @@ export function callAsyncIntendantBenchFn(
 }
 
 type BenchHooks = {
-  beforeEach: types.Hook[];
-  afterEach: types.Hook[];
+  beforeEach: Intendant.Hook[];
+  afterEach: Intendant.Hook[];
 };
 
-export function getEachHooksForBench(test: types.BenchEntry): BenchHooks {
+export function getEachHooksForBench(test: Intendant.BenchEntry): BenchHooks {
   const result: BenchHooks = {afterEach: [], beforeEach: []};
-  let block: types.DescribeBlock | undefined | null = test.parent;
+  let block: Intendant.DescribeBlock | undefined | null = test.parent;
 
   do {
     const beforeEachForCurrentBlock = [];
@@ -571,9 +527,9 @@ function checkIsError(error: unknown): error is Error {
 }
 
 export const addErrorToEachBenchUnderDescribe = (
-  describeBlock: types.DescribeBlock,
-  error: types.Exception,
-  asyncError: types.Exception,
+  describeBlock: Intendant.DescribeBlock,
+  error: Cofferer.Exception,
+  asyncError: Cofferer.Exception,
 ): void => {
   for (const child of describeBlock.children) {
     switch (child.type) {

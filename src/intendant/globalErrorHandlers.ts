@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import type * as types from './types';
+import type * as Intendant from './types';
 import {dispatchSync} from './state';
 
 const uncaught: NodeJS.UncaughtExceptionListener &
@@ -14,7 +14,7 @@ const uncaught: NodeJS.UncaughtExceptionListener &
 
 export const injectGlobalErrorHandlers = (
   parentProcess: NodeJS.Process,
-): types.GlobalErrorHandlers => {
+): Intendant.GlobalErrorHandlers => {
   const uncaughtException = process.listeners('uncaughtException').slice();
   const unhandledRejection = process.listeners('unhandledRejection').slice();
   parentProcess.removeAllListeners('uncaughtException');
@@ -26,7 +26,7 @@ export const injectGlobalErrorHandlers = (
 
 export const restoreGlobalErrorHandlers = (
   parentProcess: NodeJS.Process,
-  originalErrorHandlers: types.GlobalErrorHandlers,
+  originalErrorHandlers: Intendant.GlobalErrorHandlers,
 ): void => {
   parentProcess.removeListener('uncaughtException', uncaught);
   parentProcess.removeListener('unhandledRejection', uncaught);

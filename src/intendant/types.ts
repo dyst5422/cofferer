@@ -1,6 +1,6 @@
-import {ErrorWithStack} from 'jest-util';
+import type {ErrorWithStack} from 'jest-util';
+import type * as Cofferer from "../types";
 
-export type Exception = any;
 export type ValidBenchReturnValues = void | undefined;
 export type BenchReturnValuePromise = Promise<unknown>;
 export type BenchReturnValueGenerator = Generator<void, unknown, void>;
@@ -12,11 +12,8 @@ export type PromiseReturningBenchFn = (this: BenchContext | undefined) => BenchR
 export type GeneratorReturningBenchFn = (this: BenchContext | undefined) => BenchReturnValueGenerator;
 export type BenchFn = PromiseReturningBenchFn | GeneratorReturningBenchFn | DoneTakingBenchFn;
 export type BlockMode = void | 'skip' | 'only' | 'todo';
-export type BlockName = string;
 export type BlockFn = () => void
 export type BenchMode = BlockMode;
-export type BenchName = string;
-export type BenchStatus = 'skip' | 'done' | 'todo';
 export type SharedHookType = 'afterAll' | 'beforeAll';
 export type HookType = SharedHookType | 'afterEach' | 'beforeEach';
 export type HookFn = BenchFn;
@@ -30,15 +27,8 @@ export type Hook = {
   timeout: number | undefined | null;
 };
 
-export type BenchOptions = {
-  iterations: number,
-  timeout: number,
-  profileMemory: boolean,
-  profileDuration: boolean,
-}
-
 export type DescribeFn = (
-  blockName: BlockName,
+  blockName: Cofferer.BlockName,
   blockFn: BlockFn,
 ) => void;
 
@@ -49,11 +39,11 @@ export type Events =
   | Event<'run_finish'>
   | Event<'start_describe_definition', {
     asyncError: ErrorWithStack,
-    blockName: BlockName,
+    blockName: Cofferer.BlockName,
     mode: BlockMode,
   }>
   | Event<'finish_describe_definition', {
-    blockName: BlockName,
+    blockName: Cofferer.BlockName,
     mode: BlockMode,
   }>
   | Event<'add_hook', {
@@ -66,8 +56,8 @@ export type Events =
     asyncError: ErrorWithStack,
     fn: HookFn,
     mode: BenchMode,
-    benchName: BenchName,
-    options?: Partial<BenchOptions> | null,
+    benchName: Cofferer.BenchName,
+    options?: Partial<Cofferer.BenchOptions> | null,
   }>
   | Event<'hook_start', {
     hook: Hook,
@@ -75,7 +65,7 @@ export type Events =
   | Event<'hook_failure', {
     bench: BenchEntry,
     describeBlock: DescribeBlock,
-    error: Exception,
+    error: Cofferer.Exception,
     hook: Hook,
   }>
   | Event<'start_run_describe', {
@@ -98,7 +88,7 @@ export type Events =
   }>
   | Event<'bench_fn_failure', {
     bench: BenchEntry,
-    error: Exception,
+    error: Cofferer.Exception,
   }>
   | Event<'setup', {
   benchNamePattern: string,
@@ -110,35 +100,20 @@ export type Events =
   }>
 ;
 
-export declare type BenchResult = {
-  durationsMs: number[],
-  heapUsedSizes?: number[] | null,
-  status: BenchStatus;
-  benchPath: Array<BenchName | BlockName>;
-};
-
-export type RunResult = {
-  unhandledErrors: Exception[];
-  benchResults: BenchResults;
-};
-
-export declare type BenchResults = BenchResult[];
-
-
 export type Event<N extends string, P = any> = {
   name: N,
 } & P;
 
 export declare type GlobalErrorHandlers = {
-  uncaughtException: Array<(exception: Exception) => void>;
-  unhandledRejection: Array<(exception: Exception, promise: Promise<unknown>) => void>;
+  uncaughtException: Array<(exception: Cofferer.Exception) => void>;
+  unhandledRejection: Array<(exception: Cofferer.Exception, promise: Promise<unknown>) => void>;
 };
 
 export type State = {
   currentDescribeBlock: DescribeBlock,
   currentlyRunningBench?: BenchEntry | null,
   rootDescribeBlock: DescribeBlock,
-  unhandledErrors: Exception[],
+  unhandledErrors: Cofferer.Exception[],
   hasFocusedBenches: boolean,
   hasStarted: boolean,
   benchNamePattern?: RegExp | null,
@@ -152,23 +127,23 @@ export type DescribeBlock = {
   children: Array<DescribeBlock | BenchEntry>;
   hooks: Array<Hook>;
   mode: BlockMode;
-  name: BlockName;
+  name: Cofferer.BlockName;
   parent?: DescribeBlock;
 };
 
 export type BenchEntry = {
   type: 'bench';
-  asyncError: Exception;
-  errors: Exception[];
+  asyncError: Cofferer.Exception;
+  errors: Cofferer.Exception[];
   fn: BenchFn;
   invocations: number;
   mode: BenchMode;
-  name: BenchName;
+  name: Cofferer.BenchName;
   parent: DescribeBlock;
   seenDone: boolean;
   heapUseds?: number[] | null;
   durations: number[];
-  status?: BenchStatus | null;
-  options: BenchOptions;
+  status?: Cofferer.BenchStatus | null;
+  options: Cofferer.BenchOptions;
 }
 
