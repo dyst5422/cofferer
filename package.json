@@ -13,8 +13,7 @@
     "build-worker": "esbuild ./src/worker.ts src/intendant/* src/cofferer-environment-node.ts --format=cjs --platform=node --outdir=dist",
     "build": "npm run build-index & npm run build-worker",
     "watch": "npm run build-index -- --watch",
-    "watch-worker": "npm run build-worker -- --watch",
-    "go": "node dist/index.js"
+    "watch-worker": "npm run build-worker -- --watch"
   },
   "repository": {
     "type": "git",
