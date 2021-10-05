@@ -4,19 +4,19 @@ import {afterAll, afterEach, beforeAll, beforeEach, bench, describe, resetState,
 import type * as Cofferer from './types';
 import { NodeEnvironment } from './cofferer-environment-node';
 import {dirname, basename, join} from 'path';
-import {BenchOptions} from "./types";
+import {BenchOptions} from './types';
 
 export async function runBench(benchFile: string, benchOptions: BenchOptions): Promise<Cofferer.RunResult> {
   const benchmarkResult: any = {
     benchResults: null,
     errorMessage: null,
-  }
+  };
   try {
     resetState(benchFile, benchOptions);
     let environment: NodeEnvironment;
-
     const customRequire = (fileName: string) => {
-      const code = fs.readFileSync(join(dirname(benchFile), fileName), 'utf8');
+      const fullFileName = join(dirname(benchFile), fileName);
+      let code = fs.readFileSync(fullFileName, 'utf8');
       const moduleFactory = vm.runInContext(
         `(function(module, require) {${code}})`,
         environment.getVmContext()!,

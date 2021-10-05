@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-
+import { register } from 'ts-node';
+register();
 import { Command } from 'commander';
 import JestHasteMap from 'jest-haste-map';
 import {cpus} from 'os';

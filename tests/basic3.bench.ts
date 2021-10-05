@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 
 describeB('some suite', () => {
   bench('read some big files', async () => {
