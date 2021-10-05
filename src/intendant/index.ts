@@ -2,10 +2,11 @@ import type * as Intendant from './types';
 import type * as Cofferer from '../types';
 import {dispatchSync} from './state';
 import {ErrorWithStack, isPromise} from 'jest-util';
+import type {BenchOptions} from "../types";
 export {run} from './run';
 export{resetState} from './state';
 
-type THook = (fn: Intendant.HookFn, timeout?: number) => void;
+type THook = (fn: Intendant.HookFn, benchOptions?: BenchOptions) => void;
 export function describe(blockName: Cofferer.BlockName, blockFn: Intendant.BlockFn): void {
   _dispatchDescribe(blockFn, blockName, describe)
 }
@@ -61,7 +62,7 @@ const _addHook = (
   fn: Intendant.HookFn,
   hookType: Intendant.HookType,
   hookFn: THook,
-  timeout?: number,
+  options?: BenchOptions,
 ) => {
   const asyncError = new ErrorWithStack(undefined, hookFn);
 
@@ -72,18 +73,18 @@ const _addHook = (
     throw asyncError;
   }
 
-  dispatchSync({asyncError, fn, hookType, name: 'add_hook', timeout});
+  dispatchSync({asyncError, fn, hookType, name: 'add_hook', options});
 };
 
 // Hooks have to pass themselves to the HOF in order for us to trim stack traces.
-export const beforeEach: THook = (fn, timeout) =>
-  _addHook(fn, 'beforeEach', beforeEach, timeout);
-export const beforeAll: THook = (fn, timeout) =>
-  _addHook(fn, 'beforeAll', beforeAll, timeout);
-export const afterEach: THook = (fn, timeout) =>
-  _addHook(fn, 'afterEach', afterEach, timeout);
-export const afterAll: THook = (fn, timeout) =>
-  _addHook(fn, 'afterAll', afterAll, timeout);
+export const beforeEach: THook = (fn, options?: BenchOptions) =>
+  _addHook(fn, 'beforeEach', beforeEach, options);
+export const beforeAll: THook = (fn, options?: BenchOptions) =>
+  _addHook(fn, 'beforeAll', beforeAll, options);
+export const afterEach: THook = (fn, options?: BenchOptions) =>
+  _addHook(fn, 'afterEach', afterEach, options);
+export const afterAll: THook = (fn, options?: BenchOptions) =>
+  _addHook(fn, 'afterAll', afterAll, options);
 
 export function bench(
   benchName: Cofferer.BenchName,

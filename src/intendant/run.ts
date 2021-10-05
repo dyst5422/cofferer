@@ -117,7 +117,7 @@ async function _callIntendantHook({
   benchContext?: Intendant.BenchContext;
 }): Promise<void> {
   await dispatch({hook, name: 'hook_start'});
-  const timeout = hook.timeout ?? getState().benchOptions.timeout;
+  const timeout = hook.benchOptions.timeout ?? getState().benchOptions.timeout;
 
   try {
     await callAsyncIntendantFn(hook, benchContext, {

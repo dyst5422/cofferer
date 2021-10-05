@@ -363,8 +363,9 @@ export function callAsyncIntendantBenchFn(
           global.gc!();
           const idArray = getBenchIDArray(benchOrHook);
           const dirName = path.dirname(idArray[0] as string);
-          const filename = path.basename(idArray[0] as string)
-          v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`);
+          const filename = path.basename(idArray[0] as string);
+          const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`;
+          v8.writeHeapSnapshot(snapshotFilename);
         }
         if (benchOrHook.options.profileMemory) {
           global.gc!();
@@ -372,7 +373,7 @@ export function callAsyncIntendantBenchFn(
         }
         for (const iter of range(1, benchOrHook.options.iterations)) {
           const startTime = performance.now();
-          returnedValue = co.wrap(fn).call({});
+          returnedValue = co.wrap(fn).call(benchContext);
           benchOrHook.durations.push(performance.now() - startTime);
           if (benchOrHook.options.profileMemory) {
             if (!Array.isArray(benchOrHook.heapUseds)) {
@@ -383,15 +384,16 @@ export function callAsyncIntendantBenchFn(
           if (benchOrHook.options.snapshotHeap) {
             const idArray = getBenchIDArray(benchOrHook);
             const dirName = path.dirname(idArray[0] as string);
-            const filename = path.basename(idArray[0] as string)
-            v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`);
+            const filename = path.basename(idArray[0] as string);
+            const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`;
+            v8.writeHeapSnapshot(snapshotFilename);
           }
           if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
             global.gc!();
           }
         }
       } else {
-        returnedValue = co.wrap(fn).call({});
+        returnedValue = co.wrap(fn).call(benchContext);
       }
 
     } else {
@@ -402,8 +404,9 @@ export function callAsyncIntendantBenchFn(
             global.gc!();
             const idArray = getBenchIDArray(benchOrHook);
             const dirName = path.dirname(idArray[0] as string);
-            const filename = path.basename(idArray[0] as string)
-            v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`);
+            const filename = path.basename(idArray[0] as string);
+            const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`;
+            v8.writeHeapSnapshot(snapshotFilename);
           }
           if (benchOrHook.options.profileMemory) {
             global.gc!();
@@ -422,8 +425,9 @@ export function callAsyncIntendantBenchFn(
             if (benchOrHook.options.snapshotHeap) {
               const idArray = getBenchIDArray(benchOrHook);
               const dirName = path.dirname(idArray[0] as string);
-              const filename = path.basename(idArray[0] as string)
-              v8.writeHeapSnapshot(`${dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`);
+              const filename = path.basename(idArray[0] as string);
+              const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`;
+              v8.writeHeapSnapshot(snapshotFilename);
             }
             if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
               global.gc!();

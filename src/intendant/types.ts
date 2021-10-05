@@ -25,7 +25,7 @@ export type Hook = {
   type: HookType;
   parent: DescribeBlock;
   seenDone: boolean;
-  timeout: number | undefined | null;
+  benchOptions: BenchOptions;
 };
 
 export type DescribeFn = (

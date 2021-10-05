@@ -1,6 +1,6 @@
 
 
-describe('some suite', () => {
+describeBench('some suite', () => {
   bench('some bench with a heap snapshot', () => {
     console.log('some stuff happens here')
   }, { snapshotHeap: true });

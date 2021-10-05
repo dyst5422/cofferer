@@ -2,7 +2,11 @@
   "name": "cofferer",
   "version": "1.0.0",
   "description": "A JS/TS benchmark runner with a familiar spec-like api",
-  "main": "index.js",
+  "main": "./dist/cli.mjs",
+  "bin": {
+    "bench": "./dist/cli.mjs"
+  },
+  "types": "./globalDeclarations.d.ts",
   "scripts": {
     "test": "npx jest",
     "build-index": "esbuild ./src/cli.ts ./src/reporter.ts --format=esm --platform=node --outdir=dist --out-extension:.js=.mjs",
@@ -48,10 +52,10 @@
     "jest-each": "^27.2.4",
     "jest-environment-node": "^27.2.4",
     "jest-haste-map": "^27.2.4",
-    "jest-util": "^27.2.4",
-    "jest-worker": "^27.2.4",
     "jest-resolve": "^27.2.4",
     "jest-runtime": "^27.2.4",
+    "jest-util": "^27.2.4",
+    "jest-worker": "^27.2.4",
     "pretty-format": "^27.2.4",
     "ts-invariant": "^0.9.3"
   }

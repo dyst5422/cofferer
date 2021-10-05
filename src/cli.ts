@@ -1,9 +1,12 @@
+#!/usr/bin/env node
+
 import { Command } from 'commander';
 import JestHasteMap from 'jest-haste-map';
 import {cpus} from 'os';
 import {Worker} from 'jest-worker';
 import path from 'path';
 import url from 'url';
+import fs from 'fs';
 import type * as Cofferer from './types';
 // @ts-ignore
 import {stdoutReporter} from './reporter.mjs';
@@ -12,24 +15,37 @@ import {BenchOptions} from "./types";
 
 const MODULE_NAME = 'cofferer'
 
-
+const CONFIG_DEFAULTS: BenchOptions = {
+  iterations: 10,
+  timeout: 60000,
+  profileMemory: false,
+  snapshotHeap: false,
+  snapshotOutputDirectory: null,
+  memoryLeakVariance: 0.05,
+  memoryLeakMinimumValue: 0.05 * 1024 * 1024,
+}
 
 async function main() {
+  const root = process.cwd();
+  const result = await cosmiconfig(MODULE_NAME).search() as { config?: Partial<BenchOptions> };
   const program = new Command();
   program
-    .option<number>('-i, --iterations <number>', 'Number of iterations to do of each benchmark', parseFloat, 10)
-    .option<number>('-t, --timeout <number>', 'Timeout value for each benchmark', parseFloat, 60000)
-    .option('-p, --profileMemory', 'Profiled in addition to CPU', true)
-    .option('-s, --snapshotHeap', 'Save out heap snapshots', false)
-    .option<number>('-v, --memoryLeakVariance <number>', 'Save out heap snapshots', parseFloat, 0.05)
+    .description('Run the benchmark runner')
+    .option<number>('-i, --iterations <number>', 'Number of iterations to do of each benchmark', parseFloat, result?.config?.iterations ?? CONFIG_DEFAULTS.iterations)
+    .option<number>('-t, --timeout <number>', 'Timeout value for each benchmark', parseFloat, result?.config?.timeout ?? CONFIG_DEFAULTS.timeout)
+    .option('-p, --profileMemory', 'Profiled in addition to CPU', result?.config?.profileMemory ?? CONFIG_DEFAULTS.profileMemory)
+    .option('-s, --snapshotHeap', 'Save out heap snapshots', result?.config?.snapshotHeap ?? CONFIG_DEFAULTS.snapshotHeap)
+    .option<string | null>('-o, --snapshotOutputDirectory <string>', 'Output directory for heap snapshots', outputDir => path.resolve(root, outputDir), result?.config?.snapshotOutputDirectory ?? CONFIG_DEFAULTS.snapshotOutputDirectory)
+    .option<number>('-v, --memoryLeakVariance <number>', 'Minimum variance in memory usage to flag as leak [0-1]', parseFloat, result?.config?.memoryLeakVariance ?? CONFIG_DEFAULTS.memoryLeakVariance)
+    .option<number>('-m, --memoryLeakMinimumValue <number>', 'Ignore leaks below this fixed memory amount in bytes', parseFloat, result?.config?.memoryLeakMinimumValue ?? CONFIG_DEFAULTS.memoryLeakMinimumValue)
     .parse();
-  const result = await cosmiconfig(MODULE_NAME).search();
 
-  const config: BenchOptions = {
-    ...result?.config,
-    ...program.opts(),
-  };
-  const root = process.cwd();
+  const config = program.opts() as BenchOptions;
+
+  // Ensure output directory exists
+  if (config.snapshotOutputDirectory !== null) {
+    await fs.promises.mkdir(config.snapshotOutputDirectory, { recursive: true });
+  }
 
   // @ts-ignore
   const worker: Worker & { runBench: (benchFile: string, benchOptions: BenchOptions) => Promise<Cofferer.RunResult> } = new Worker(path.join(path.dirname(url.fileURLToPath(import.meta.url)), 'worker.js'), {

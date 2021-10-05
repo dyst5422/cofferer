@@ -2,6 +2,6 @@
   timeout: 60000,
   iterations: 10,
   profileMemory: true,
-  snapshotHeap: false,
+  snapshotHeap: true,
   memoryLeakVariance: 0.05
 }

@@ -8,7 +8,9 @@ export type BenchOptions = {
   timeout: number;
   profileMemory: boolean;
   snapshotHeap: boolean;
+  snapshotOutputDirectory: string | null;
   memoryLeakVariance: number;
+  memoryLeakMinimumValue: number;
 }
 
 export type BenchResult = {

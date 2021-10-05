@@ -78,10 +78,11 @@ function reportBench(name: string, bench: Cofferer.BenchResult): string {
     const heapDiffs = bench.heapUsedSizes.slice(0, -1).map((heapUsedVal, index) => bench.heapUsedSizes![index + 1]! - heapUsedVal);
     const heapDiffMean = mean(heapDiffs);
     const increasing = heapDiffMean > 0;
-    const leaking = varianceExceeded && increasing;
+    const leakSize = Math.max(...heapDiffs);
+    const leaking = varianceExceeded && increasing && leakSize > bench.benchOptions.memoryLeakMinimumValue;
 
     if (leaking) {
-      logString += chalk.blue.inverse(`Leak Detected\n`);
+      logString += chalk.red.inverse(`Leak Detected\n`);
       logString += indentString('[\n');
       for (const heapUsedVal of bench.heapUsedSizes) {
         logString += indentString(`${roundToDecimals(toMb(heapUsedVal))}Mb,\n`, 4);

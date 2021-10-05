@@ -78,8 +78,8 @@ export function eventHandler(event: Intendant.Events, state: Intendant.State): v
       break;
     }
     case 'add_hook': {
-      const {currentDescribeBlock, currentlyRunningBench, hasStarted} = state;
-      const {asyncError, fn, hookType: type, timeout} = event;
+      const {currentDescribeBlock, currentlyRunningBench, hasStarted, benchOptions} = state;
+      const {asyncError, fn, hookType: type, options} = event;
 
       if (currentlyRunningBench) {
         currentlyRunningBench.errors.push(
@@ -103,7 +103,7 @@ export function eventHandler(event: Intendant.Events, state: Intendant.State): v
         fn,
         parent,
         seenDone: false,
-        timeout,
+        benchOptions: {...benchOptions, ...options},
         type,
       });
       break;

@@ -9,6 +9,7 @@
     "tests",
     "node_modules",
     "dist",
-    "src/worker.ts"
+    "src/worker.ts",
+    "src/intendant"
   ]
 }

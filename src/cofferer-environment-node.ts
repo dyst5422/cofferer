@@ -8,12 +8,16 @@
 import {Context, createContext, runInContext} from 'vm';
 import type { CoffererEnvironment } from './environment';
 import {installCommonGlobals} from 'jest-util';
-import {bench, describe} from "./intendant";
+import {afterAll, afterEach, beforeAll, beforeEach, bench, describe} from "./intendant";
 
 type Global = { [key: string]: any};
 
 type BenchEnvironmentOptions = {
-  describe: typeof describe,
+  beforeAllBenches: typeof beforeAll;
+  beforeEachBench: typeof beforeEach;
+  afterAllBenches: typeof afterAll;
+  afterEachBench: typeof afterEach;
+  describeBench: typeof describe,
   bench: typeof bench,
   [key: string]: unknown
 };

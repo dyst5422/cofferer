@@ -1,6 +1,6 @@
 import fs from 'fs';
 import vm from 'vm';
-import {describe, bench, resetState, run} from './intendant'
+import {afterAll, afterEach, beforeAll, beforeEach, bench, describe, resetState, run} from './intendant'
 import type * as Cofferer from './types';
 import { NodeEnvironment } from './cofferer-environment-node';
 import {dirname, basename, join} from 'path';
@@ -29,7 +29,16 @@ export async function runBench(benchFile: string, benchOptions: BenchOptions): P
     };
     environment = new NodeEnvironment({
       benchEnvironmentOptions: {
-        describe,
+        beforeAllBenches: beforeAll,
+        beforeEachBench: beforeEach,
+        afterAllBenches: afterAll,
+        afterEachBench: afterEach,
+        describeBench: describe,
+        beforeAllB: beforeAll,
+        beforeEachB: beforeEach,
+        afterAllB: afterAll,
+        afterEachB: afterEach,
+        describeB: describe,
         bench,
         require: customRequire,
         __dirname: dirname(benchFile),
