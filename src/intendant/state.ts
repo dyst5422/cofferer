@@ -1,6 +1,7 @@
 import type * as Intendant from './types';
 import {eventHandler} from './eventHandler';
-import {DEFAULT_BENCH_OPTIONS, makeDescribe} from "./utils";
+import {makeDescribe} from "./utils";
+import type { BenchOptions } from '../types'
 
 // @ts-ignore
 let __globalState: Intendant.State;
@@ -9,7 +10,7 @@ const eventHandlers: Intendant.EventHandler[] = [
   eventHandler,
 ];
 
-function createState(benchFilename: string): Intendant.State {
+function createState(benchFilename: string, benchOptions: BenchOptions): Intendant.State {
    const ROOT_DESCRIBE_BLOCK = makeDescribe(benchFilename);
    return {
      rootDescribeBlock: ROOT_DESCRIBE_BLOCK,
@@ -18,7 +19,7 @@ function createState(benchFilename: string): Intendant.State {
      hasFocusedBenches: false,
      unhandledErrors: [],
      hasStarted: false,
-     benchTimeout: DEFAULT_BENCH_OPTIONS.timeout,
+     benchOptions,
      parentProcess: null,
    };
 }
@@ -29,8 +30,8 @@ export function setState(state: Intendant.State): Intendant.State {
   __globalState = state;
   return __globalState;
 }
-export function resetState(benchFilename: string): void {
-  setState(createState(benchFilename));
+export function resetState(benchFilename: string, benchOptions: BenchOptions): void {
+  setState(createState(benchFilename, benchOptions));
 }
 export async function dispatch(event: Intendant.Events): Promise<void> {
   for (const handler of eventHandlers) {

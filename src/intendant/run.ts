@@ -117,7 +117,7 @@ async function _callIntendantHook({
   benchContext?: Intendant.BenchContext;
 }): Promise<void> {
   await dispatch({hook, name: 'hook_start'});
-  const timeout = hook.timeout ?? getState().benchTimeout;
+  const timeout = hook.timeout ?? getState().benchOptions.timeout;
 
   try {
     await callAsyncIntendantFn(hook, benchContext, {
@@ -135,7 +135,7 @@ async function _callIntendantBench(
   benchContext: Intendant.BenchContext,
 ): Promise<void> {
   await dispatch({name: 'bench_fn_start', bench: bench});
-  const timeout = bench.options?.timeout ?? getState().benchTimeout;
+  const timeout = bench.options?.timeout ?? getState().benchOptions.timeout;
   invariant(bench.fn, `Benches with no 'fn' should have 'mode' set to 'skipped'`);
 
   if (bench.errors.length) {

@@ -1,7 +1,6 @@
 import type * as Intendant from './types'
 import {
   addErrorToEachBenchUnderDescribe,
-  DEFAULT_BENCH_OPTIONS,
   describeBlockHasBenches,
   makeBench,
   makeDescribe
@@ -14,7 +13,6 @@ export function eventHandler(event: Intendant.Events, state: Intendant.State): v
   switch(event.name) {
     case 'run_start': {
       state.hasStarted = true;
-      state.benchTimeout = DEFAULT_BENCH_OPTIONS.timeout;
       break;
     }
     case 'run_finish': {
@@ -111,7 +109,7 @@ export function eventHandler(event: Intendant.Events, state: Intendant.State): v
       break;
     }
     case 'add_bench': {
-      const {currentDescribeBlock, currentlyRunningBench, hasStarted} = state;
+      const {currentDescribeBlock, currentlyRunningBench, hasStarted, benchOptions} = state;
       const {asyncError, fn, mode, benchName, options} = event;
 
       if (currentlyRunningBench) {
@@ -133,7 +131,7 @@ export function eventHandler(event: Intendant.Events, state: Intendant.State): v
         mode,
         benchName,
         currentDescribeBlock,
-        options ?? null,
+        {...benchOptions, ...options},
         asyncError,
       );
       if (currentDescribeBlock.mode === 'skip' && bench.mode === 'only') {

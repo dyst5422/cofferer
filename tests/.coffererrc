@@ -1,0 +1,7 @@
+{
+  timeout: 60000,
+  iterations: 10,
+  profileMemory: true,
+  snapshotHeap: false,
+  memoryLeakVariance: 0.05
+}

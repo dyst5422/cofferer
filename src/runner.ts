@@ -4,6 +4,7 @@ import {Worker} from 'jest-worker';
 import path from 'path';
 import url from 'url';
 import type * as Cofferer from './types';
+// @ts-ignore
 import {stdoutReporter} from './reporter.mjs';
 
 async function main() {

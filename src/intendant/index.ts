@@ -88,7 +88,7 @@ export const afterAll: THook = (fn, timeout) =>
 export function bench(
   benchName: Cofferer.BenchName,
   fn: Intendant.BenchFn,
-  options?: Partial<Intendant.BenchOptions> | null,
+  options?: Partial<Cofferer.BenchOptions> | null,
 ): void {
   _addBench(benchName, undefined, fn, bench, options);
 }
@@ -96,7 +96,7 @@ export function bench(
 function benchSkip(
   benchName: Cofferer.BenchName,
   fn?: Intendant.BenchFn,
-  options?: Partial<Intendant.BenchOptions> | null,
+  options?: Partial<Cofferer.BenchOptions> | null,
 ): void {
   _addBench(benchName, 'skip', fn, benchSkip, options);
 }
@@ -104,7 +104,7 @@ function benchSkip(
 function benchOnly(
   benchName: Cofferer.BenchName,
   fn?: Intendant.BenchFn,
-  options?: Partial<Intendant.BenchOptions> | null,
+  options?: Partial<Cofferer.BenchOptions> | null,
 ): void {
   _addBench(benchName, 'only', fn, benchOnly, options);
 }
@@ -134,9 +134,9 @@ function _addBench(
   benchFn: (
     benchName: Cofferer.BenchName,
     fn: Intendant.BenchFn,
-    options?: Partial<Intendant.BenchOptions>,
+    options?: Partial<Cofferer.BenchOptions>,
   ) => void,
-  options?: Partial<Intendant.BenchOptions> | null,
+  options?: Partial<Cofferer.BenchOptions> | null,
 ) {
   const asyncError = new ErrorWithStack(undefined, benchFn);
 

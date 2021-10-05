@@ -1,5 +1,6 @@
 import type {ErrorWithStack} from 'jest-util';
 import type * as Cofferer from "../types";
+import type {BenchOptions} from "../types";
 
 export type ValidBenchReturnValues = void | undefined;
 export type BenchReturnValuePromise = Promise<unknown>;
@@ -117,9 +118,9 @@ export type State = {
   hasFocusedBenches: boolean,
   hasStarted: boolean,
   benchNamePattern?: RegExp | null,
-  benchTimeout: number,
   parentProcess: NodeJS.Process | null;
   originalGlobalErrorHandlers?: GlobalErrorHandlers;
+  benchOptions: BenchOptions,
 }
 
 export type DescribeBlock = {

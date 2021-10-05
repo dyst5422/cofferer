@@ -10,14 +10,6 @@ import isGeneratorFunction from 'is-generator-fn';
 import v8 from 'v8';
 import path from "path";
 
-export const DEFAULT_BENCH_OPTIONS: Cofferer.BenchOptions = {
-  timeout: 60000,
-  iterations: 10,
-  profileMemory: true,
-  snapshotHeap: false,
-  memoryLeakVariance: 0.05,
-}
-
 function takesDoneCallback(fn: Intendant.AsyncFn): fn is Intendant.DoneTakingBenchFn {
   return fn.length > 0;
 }
@@ -56,7 +48,7 @@ export function makeBench(
   mode: Intendant.BenchMode,
   name: Cofferer.BenchName,
   parent: Intendant.DescribeBlock,
-  options: Partial<Cofferer.BenchOptions> | null,
+  options: Cofferer.BenchOptions,
   asyncError: Cofferer.Exception,
 ): Intendant.BenchEntry {
   return {
@@ -72,7 +64,7 @@ export function makeBench(
     heapUseds: null,
     durations: [],
     status: null,
-    options: {...DEFAULT_BENCH_OPTIONS, ...options},
+    options: options,
   };
 }
 

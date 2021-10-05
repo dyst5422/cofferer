@@ -19,7 +19,7 @@ export function stdoutReporter(runResults: Cofferer.RunResult[]): void {
   const reportMap: FileReportMap = {};
   for (const runResult of runResults) {
     if (!runResult.benchResults) {
-      for (const error of runResult.unhandledErrors) {
+      for (const error of runResult.unhandledErrors ?? []) {
         console.error(error);
       }
       continue;
