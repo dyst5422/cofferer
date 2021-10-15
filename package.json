@@ -9,11 +9,13 @@
   "types": "./globalDeclarations.d.ts",
   "scripts": {
     "test": "npx jest",
-    "build-index": "esbuild ./src/cli.ts ./src/reporter.ts --format=esm --platform=node --outdir=dist --out-extension:.js=.mjs",
+    "build-index": "esbuild ./src/cli.ts ./src/stdoutReporter.ts --format=esm --platform=node --outdir=dist --out-extension:.js=.mjs",
     "build-worker": "esbuild ./src/worker.ts src/intendant/* src/cofferer-environment-node.ts --format=cjs --platform=node --outdir=dist",
     "build": "npm run build-index & npm run build-worker",
     "watch": "npm run build-index -- --watch",
-    "watch-worker": "npm run build-worker -- --watch"
+    "watch-worker": "npm run build-worker -- --watch",
+    "publish-to-artifactory": "rm -rf dist && npm run build && npm publish --registry=https://cae-artifactory.jpl.nasa.gov/artifactory/api/npm/npm-develop-local/ --scope=@gov.nasa.jpl.m2020.apss",
+    "login-to-artifactory": "npm login --registry=https://cae-artifactory.jpl.nasa.gov/artifactory/api/npm/npm-develop-local/ --scope=@gov.nasa.jpl.m2020.apss"
   },
   "repository": {
     "type": "git",
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@types/co": "^4.6.2",
     "@types/dedent": "^0.7.0",
+    "@types/require-from-string": "^1.2.1",
     "@types/stack-utils": "^2.0.1",
     "@typescript-eslint/eslint-plugin": "^4.28.5",
     "@typescript-eslint/parser": "^4.28.5",
@@ -42,17 +45,18 @@
   },
   "dependencies": {
     "chalk": "^4.1.2",
-    "co": "^4.6.0",
     "commander": "^8.2.0",
     "cosmiconfig": "^7.0.0",
     "dedent": "^0.7.0",
     "immer": "^9.0.5",
-    "is-generator-fn": "^2.1.0",
     "jest-each": "^27.2.4",
     "jest-haste-map": "^27.2.4",
     "jest-util": "^27.2.4",
     "jest-worker": "^27.2.4",
+    "jest-resolve": "^27.2.4",
     "pretty-format": "^27.2.4",
+    "require-from-string": "^2.0.2",
+    "serialize-error": "^8.1.0",
     "ts-invariant": "^0.9.3"
   }
 }

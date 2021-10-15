@@ -154,7 +154,7 @@ export function eventHandler(event: Intendant.Events, state: Intendant.State): v
       } else if (type === 'afterAll') {
         // Attaching `afterAll` errors to each test makes execution flow
         // too complicated, so we'll consider them to be global.
-        state.unhandledErrors.push([error, asyncError]);
+        state.unhandledErrors.push(...[error, asyncError]);
       } else {
         invariant(bench, 'always present for `*Each` hooks');
         bench.errors.push([error, asyncError]);

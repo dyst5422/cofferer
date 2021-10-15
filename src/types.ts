@@ -1,6 +1,6 @@
 export type BenchName = string;
 export type BenchStatus = 'skip' | 'done' | 'todo';
-export type Exception = any;
+export type Exception = Error;
 export type BlockName = string;
 
 export type BenchOptions = {
@@ -24,7 +24,8 @@ export type BenchResult = {
 export type BenchResults = BenchResult[];
 
 export type RunResult = {
-  unhandledErrors: Exception[];
+  filename: string;
+  unhandledErrors: Error[];
   benchResults: BenchResults;
 };
 

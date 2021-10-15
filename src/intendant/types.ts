@@ -4,14 +4,12 @@ import type {BenchOptions} from "../types";
 
 export type ValidBenchReturnValues = void | undefined;
 export type BenchReturnValuePromise = Promise<unknown>;
-export type BenchReturnValueGenerator = Generator<void, unknown, void>;
 export type BenchReturnValue = ValidBenchReturnValues | BenchReturnValuePromise;
 export type BenchContext = Record<string, unknown>;
 export type DoneFn = () => void;
 export type DoneTakingBenchFn = (this: BenchContext | undefined, done: DoneFn) => ValidBenchReturnValues;
 export type PromiseReturningBenchFn = (this: BenchContext | undefined) => BenchReturnValue;
-export type GeneratorReturningBenchFn = (this: BenchContext | undefined) => BenchReturnValueGenerator;
-export type BenchFn = PromiseReturningBenchFn | GeneratorReturningBenchFn | DoneTakingBenchFn;
+export type BenchFn = PromiseReturningBenchFn | DoneTakingBenchFn;
 export type BlockMode = void | 'skip' | 'only' | 'todo';
 export type BlockFn = () => void
 export type BenchMode = BlockMode;
@@ -109,6 +107,11 @@ export declare type GlobalErrorHandlers = {
   uncaughtException: Array<(exception: Cofferer.Exception) => void>;
   unhandledRejection: Array<(exception: Cofferer.Exception, promise: Promise<unknown>) => void>;
 };
+
+export type RunResult = {
+  benchResults: Cofferer.BenchResults,
+  unhandledErrors: Error[],
+}
 
 export type State = {
   currentDescribeBlock: DescribeBlock,

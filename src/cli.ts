@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import { register } from 'ts-node';
-register();
+
 import { Command } from 'commander';
 import JestHasteMap from 'jest-haste-map';
 import {cpus} from 'os';
@@ -10,9 +9,10 @@ import url from 'url';
 import fs from 'fs';
 import type * as Cofferer from './types';
 // @ts-ignore
-import {stdoutReporter} from './reporter.mjs';
+import {reportSummary, reportRun} from './stdoutReporter.mjs';
 import {cosmiconfig} from "cosmiconfig";
 import {BenchOptions} from "./types";
+import {deserializeError} from "serialize-error";
 
 const MODULE_NAME = 'cofferer'
 
@@ -23,7 +23,7 @@ const CONFIG_DEFAULTS: BenchOptions = {
   snapshotHeap: false,
   snapshotOutputDirectory: null,
   memoryLeakVariance: 0.05,
-  memoryLeakMinimumValue: 0.05 * 1024 * 1024,
+  memoryLeakMinimumValue: 0.5 * 1024 * 1024,
 }
 
 async function main() {
@@ -53,7 +53,8 @@ async function main() {
     forkOptions: {
       execArgv: ['--expose-gc', '--experimental-vm-modules'],
       stdio: [process.stdin, process.stdout, process.stderr, 'ipc']
-    }
+    },
+    // enableWorkerThreads: true,
   });
 
   // @ts-ignore
@@ -68,20 +69,22 @@ async function main() {
     useWatchman: true,
   });
 
-
-
   const {hasteFS} = await hasteMap.build();
   const benchFiles = hasteFS.matchFilesWithGlob(program.args.length > 0
-    ? program.args.map(arg => `**/${arg}*`)
+    ? program.args.map(arg => `**/${arg}*.+(ts|js|tsx|jsx|mjs)`)
     : ['**/*.bench.+(ts|js|tsx|jsx|mjs)']
   , root);
 
   const allResults: Cofferer.RunResult[] = [];
+  const startTime = performance.now();
   await Promise.all(Array.from(benchFiles).map(async benchFile => {
+    const runStartTime = performance.now();
     const result = await worker.runBench(benchFile, config);
+    result.unhandledErrors = result.unhandledErrors.map(err => deserializeError(err));
+    reportRun(result, performance.now() - runStartTime);
     allResults.push(result);
-  }))
-  stdoutReporter(allResults);
+  }));
+  reportSummary(allResults, performance.now() - startTime);
   worker.end();
 }
 void main();

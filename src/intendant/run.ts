@@ -1,5 +1,4 @@
 import type * as Intendant from './types';
-import type * as Cofferer from '../types';
 import {dispatch, getState} from './state';
 import {
   callAsyncIntendantBenchFn,
@@ -11,7 +10,7 @@ import {
 } from './utils';
 import invariant from "ts-invariant";
 
-export async function run(): Promise<Cofferer.RunResult> {
+export async function run(): Promise<Intendant.RunResult> {
   const {rootDescribeBlock} = getState();
   await dispatch({name: 'start_run'});
   await _runBenchesForDescribeBlock(rootDescribeBlock);

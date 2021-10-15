@@ -4,9 +4,7 @@ import {format as prettyFormat} from 'pretty-format';
 import invariant from 'ts-invariant';
 import {getState} from './state';
 import dedent from 'dedent';
-import co from 'co';
-import {ErrorWithStack, formatTime} from 'jest-util';
-import isGeneratorFunction from 'is-generator-fn';
+import {ErrorWithStack, formatTime, isPromise} from 'jest-util';
 import v8 from 'v8';
 import path from "path";
 
@@ -71,10 +69,10 @@ export function makeBench(
 export function makeRunResult(
   describeBlock: Intendant.DescribeBlock,
   unhandledErrors: Error[]
-): Cofferer.RunResult {
+): Intendant.RunResult {
   return {
     benchResults: makeBenchResults(describeBlock),
-    unhandledErrors: unhandledErrors.map(_getError).map(getErrorStack),
+    unhandledErrors: unhandledErrors.map(_getError),
   }
 }
 
@@ -144,9 +142,9 @@ function _getError(
   return asyncError;
 }
 
-function getErrorStack(error: Error): string {
-  return typeof error.stack === 'string' ? error.stack : error.message;
-}
+// function getErrorStack(error: Error): string {
+//   return typeof error.stack === 'string' ? error.stack : error.message;
+// }
 
 type DescribeHooks = {
   beforeAll: Intendant.Hook[];
@@ -287,15 +285,12 @@ export function callAsyncIntendantFn(
     }
 
     let returnedValue: Intendant.BenchReturnValue;
-    if (isGeneratorFunction(fn)) {
-      returnedValue = co.wrap(fn).call({});
-    } else {
-      try {
-        returnedValue = (fn as any).call(benchContext);
-      } catch (error) {
-        reject(error);
-        return;
-      }
+
+    try {
+      returnedValue = (fn as any).call(benchContext);
+    } catch (error) {
+      reject(error);
+      return;
     }
 
     // If it's a Promise, return it. Test for an object with a `then` function
@@ -349,134 +344,70 @@ export function callAsyncIntendantBenchFn(
 
   const {fn} = benchOrHook;
 
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     timeoutID = setTimeout(
       () => reject(_makeTimeoutMessage(timeout, isHook)),
       timeout,
     );
+    let initialHeapSize: number | null = null;
+    try {
+      // Heap Snapshotting
+      if (benchOrHook.options.snapshotHeap) {
+        global.gc!();
+        const idArray = getBenchIDArray(benchOrHook);
+        const dirName = path.dirname(idArray[0] as string);
+        const filename = path.basename(idArray[0] as string);
+        const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`;
+        v8.writeHeapSnapshot(snapshotFilename);
+      }
 
-    let returnedValue: Intendant.BenchReturnValue;
-    if (isGeneratorFunction(fn)) {
-      if (benchOrHook.type === 'bench') {
-        let initialHeapSize: number | null = null;
+      // Memory Profiling
+      if (benchOrHook.options.profileMemory) {
+        global.gc!();
+        initialHeapSize = v8.getHeapStatistics().used_heap_size;
+      }
+      for (const iter of range(1, benchOrHook.options.iterations)) {
+        const startTime = performance.now();
+        const result = (fn as any).call(benchContext);
+        if (isPromise(result)) {
+          await result;
+        }
+        benchOrHook.durations.push(performance.now() - startTime);
+        // Memory Profiling
+        if (benchOrHook.options.profileMemory) {
+          if (!Array.isArray(benchOrHook.heapUseds)) {
+            benchOrHook.heapUseds = [];
+          }
+          const currentHeapSize = v8.getHeapStatistics().used_heap_size;
+          benchOrHook.heapUseds!.push(currentHeapSize - initialHeapSize!);
+        }
+
+        // Heap Snapshotting
         if (benchOrHook.options.snapshotHeap) {
-          global.gc!();
           const idArray = getBenchIDArray(benchOrHook);
           const dirName = path.dirname(idArray[0] as string);
           const filename = path.basename(idArray[0] as string);
-          const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`;
+          const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`;
           v8.writeHeapSnapshot(snapshotFilename);
         }
-        if (benchOrHook.options.profileMemory) {
+
+        // Garabage collect to clear any profiling or snapshotting memory
+        if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
           global.gc!();
-          initialHeapSize = v8.getHeapStatistics().used_heap_size;
         }
-        for (const iter of range(1, benchOrHook.options.iterations)) {
-          const startTime = performance.now();
-          returnedValue = co.wrap(fn).call(benchContext);
-          benchOrHook.durations.push(performance.now() - startTime);
-          if (benchOrHook.options.profileMemory) {
-            if (!Array.isArray(benchOrHook.heapUseds)) {
-              benchOrHook.heapUseds = [];
-            }
-            benchOrHook.heapUseds!.push(v8.getHeapStatistics().used_heap_size - initialHeapSize!);
-          }
-          if (benchOrHook.options.snapshotHeap) {
-            const idArray = getBenchIDArray(benchOrHook);
-            const dirName = path.dirname(idArray[0] as string);
-            const filename = path.basename(idArray[0] as string);
-            const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`;
-            v8.writeHeapSnapshot(snapshotFilename);
-          }
-          if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
-            global.gc!();
-          }
-        }
-      } else {
-        returnedValue = co.wrap(fn).call(benchContext);
       }
-
-    } else {
-      try {
-        if (benchOrHook.type === 'bench') {
-          let initialHeapSize: number | null = null;
-          if (benchOrHook.options.snapshotHeap) {
-            global.gc!();
-            const idArray = getBenchIDArray(benchOrHook);
-            const dirName = path.dirname(idArray[0] as string);
-            const filename = path.basename(idArray[0] as string);
-            const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${0}.heapsnapshot`;
-            v8.writeHeapSnapshot(snapshotFilename);
-          }
-          if (benchOrHook.options.profileMemory) {
-            global.gc!();
-            initialHeapSize = v8.getHeapStatistics().used_heap_size;
-          }
-          for (const iter of range(1, benchOrHook.options.iterations)) {
-            const startTime = performance.now();
-            returnedValue = (fn as any).call(benchContext);
-            benchOrHook.durations.push(performance.now() - startTime);
-            if (benchOrHook.options.profileMemory) {
-              if (!Array.isArray(benchOrHook.heapUseds)) {
-                benchOrHook.heapUseds = [];
-              }
-              benchOrHook.heapUseds!.push(v8.getHeapStatistics().used_heap_size - initialHeapSize!);
-            }
-            if (benchOrHook.options.snapshotHeap) {
-              const idArray = getBenchIDArray(benchOrHook);
-              const dirName = path.dirname(idArray[0] as string);
-              const filename = path.basename(idArray[0] as string);
-              const snapshotFilename = `${benchOrHook.options.snapshotOutputDirectory ?? dirName}/${filename}:${getBenchIDArray(benchOrHook).slice(1).join(':').replaceAll(' ', '_')}:${iter}.heapsnapshot`;
-              v8.writeHeapSnapshot(snapshotFilename);
-            }
-            if (benchOrHook.options.profileMemory || benchOrHook.options.snapshotHeap) {
-              global.gc!();
-            }
-          }
-        } else {
-          returnedValue = (fn as any).call(benchContext);
-        }
-        returnedValue = (fn as any).call(benchContext);
-      } catch (error) {
-        reject(error);
-        return;
-      }
+      resolve();
+    } catch (err) {
+      reject(err);
     }
-
-    // If it's a Promise, return it. Test for an object with a `then` function
-    // to support custom Promise implementations.
-    if (
-      typeof returnedValue === 'object' &&
-      returnedValue !== null &&
-      typeof returnedValue.then === 'function'
-    ) {
-      returnedValue.then(() => resolve(), reject);
-      return;
-    }
-
-    if (!isHook && returnedValue !== undefined) {
-      reject(
-        new Error(
-          dedent`
-      bench functions can only return Promise or undefined.
-      Returned value: ${prettyFormat(returnedValue, {maxDepth: 3})}
-      `,
-        ),
-      );
-      return;
-    }
-
-    // Otherwise this test is synchronous, and if it didn't throw it means
-    // it passed.
-    resolve();
   })
-    .then(() => {
-      // If timeout is not cleared/unrefed the node process won't exit until
-      // it's resolved.
-      timeoutID.unref?.();
-      clearTimeout(timeoutID);
-    })
-    .catch(error => {
+  .then(() => {
+    // If timeout is not cleared/unrefed the node process won't exit until
+    // it's resolved.
+    timeoutID.unref?.();
+    clearTimeout(timeoutID);
+  })
+  .catch(error => {
       timeoutID.unref?.();
       clearTimeout(timeoutID);
       throw error;
@@ -533,7 +464,7 @@ export const addErrorToEachBenchUnderDescribe = (
         addErrorToEachBenchUnderDescribe(child, error, asyncError);
         break;
       case 'bench':
-        child.errors.push([error, asyncError]);
+        child.errors.push(...[error, asyncError]);
         break;
     }
   }
